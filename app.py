@@ -47,7 +47,6 @@ vector_db = SimpleVectorDB()
 # LOAD KNOWLEDGE BASE (Add your documents here)
 # ============================================
 KNOWLEDGE_BASE = [
-    KNOWLEDGE_BASE = [
     # About RTC
     "Rathinam Technical Campus (RTC) is a premier educational institution located in Coimbatore, Tamil Nadu, India. We are committed to providing quality technical education and fostering innovation.",
     "RTC was established with the vision of creating industry-ready professionals through world-class education and practical training.",
@@ -275,5 +274,6 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
 
     app.run(host='0.0.0.0', port=port, debug=False)
+
 
 

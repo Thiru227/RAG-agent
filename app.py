@@ -140,7 +140,7 @@ KNOWLEDGE_BASE = [
     "Incubation and Innovation: Partnerships with Atal Incubation Centre, StartUp India, ISRO, IEEE, AICTE, and more for grants and mentorship.",
 
     # Miscellaneous
-    "Rathinam Group leadership is recognized for philanthropy, entrepreneurship, and innovation in education and industry, with multiple awards and recognitions.
+    "Rathinam Group leadership is recognized for philanthropy, entrepreneurship, and innovation in education and industry, with multiple awards and recognitions."
 ]
 
 vector_db.add_documents(KNOWLEDGE_BASE)
@@ -313,6 +313,7 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
 
     app.run(host='0.0.0.0', port=port, debug=False)
+
 
 
 

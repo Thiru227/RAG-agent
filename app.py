@@ -1,11 +1,12 @@
 from flask import Flask, request, jsonify
 import os
 import requests
+from flask_cors import CORS
 from typing import List, Dict
 import json
 
 app = Flask(__name__)
-
+CORS(app)  # Enable CORS for frontend
 # ============================================
 # SIMPLE IN-MEMORY VECTOR DB (No dependencies!)
 # ============================================
@@ -68,15 +69,25 @@ def call_llm(prompt: str, context: str) -> str:
     """Call OpenRouter API with RAG context"""
     
     if not OPENROUTER_API_KEY:
-        return "Error: OpenRouter API key not configured"
+        return "⚠️ My AI brain isn't configured yet. Please set the OPENROUTER_API_KEY in Render."
     
-    system_prompt = f"""You are a helpful customer service assistant. 
-Use the following context to answer questions accurately:
+    system_prompt = f"""You are RTC Scholar, the friendly AI assistant for Rathinam Technical Campus (RTC). 
 
-CONTEXT:
+Your personality:
+- Helpful, enthusiastic, and knowledgeable about RTC
+- Use emojis occasionally to be friendly (🎓 📚 ✨ 🚀)
+- Be encouraging and supportive to students
+- Address students in a warm, approachable manner
+
+Use the following context from RTC's knowledge base to answer questions accurately:
 {context}
 
-If the answer is not in the context, politely say you don't have that information."""
+Guidelines:
+- Answer based ONLY on the provided context
+- Be concise but informative
+- Always maintain a positive, supportive tone
+- If asked about admissions, facilities, or academics - provide detailed info from context
+- End responses with an offer to help further"""
 
     headers = {
         "Authorization": f"Bearer {OPENROUTER_API_KEY}",
@@ -155,7 +166,7 @@ def health_check():
     """Health check endpoint for Render"""
     return jsonify({
         'status': 'healthy',
-        'service': 'RAG Agent',
+        'service': 'RTC Scholar AI Assistant',
         'documents_loaded': len(vector_db.documents),
         'api_key_configured': bool(OPENROUTER_API_KEY)
     })
@@ -214,4 +225,5 @@ def list_documents():
 # ============================================
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
+
     app.run(host='0.0.0.0', port=port, debug=False)

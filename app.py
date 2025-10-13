@@ -65,12 +65,7 @@ KNOWLEDGE_BASE = [
     "The admission process typically begins in May-June for the academic year starting in August.",
     "Application forms are available online on the official RTC website. The application fee is Rs. 500 for general category and Rs. 250 for reserved categories.",
     
-    # Facilities
-    "RTC boasts state-of-the-art laboratories equipped with the latest technology and equipment for all engineering disciplines.",
-    "The campus has a well-stocked central library with over 50,000 books, journals, e-resources, and digital library access.",
-    "Hostel facilities are available separately for boys and girls with 24/7 security, mess facilities, and recreational areas.",
-    "The campus features modern sports facilities including basketball court, volleyball court, cricket ground, and indoor games facilities.",
-    "RTC has high-speed Wi-Fi connectivity across the entire campus, enabling students to access online resources anytime.",
+   
     
     # Placements
     "RTC has an excellent placement record with 85%+ students getting placed every year in top companies.",
@@ -313,6 +308,7 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
 
     app.run(host='0.0.0.0', port=port, debug=False)
+
 
 
 

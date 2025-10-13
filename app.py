@@ -102,8 +102,7 @@ KNOWLEDGE_BASE = [
     # Fees
     "The tuition fee for B.E/B.Tech programs is approximately Rs. 60,000 per semester (subject to change).",
     "Hostel fees including mess charges are approximately Rs. 35,000 per semester.",
-    "Various scholarships are available for meritorious and economically disadvantaged students.",
-]
+    "Various scholarships are available for meritorious and economically disadvantaged students."
 ]
 
 vector_db.add_documents(KNOWLEDGE_BASE)
@@ -276,4 +275,5 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
 
     app.run(host='0.0.0.0', port=port, debug=False)
+
 

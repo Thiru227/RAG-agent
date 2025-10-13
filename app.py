@@ -47,14 +47,63 @@ vector_db = SimpleVectorDB()
 # LOAD KNOWLEDGE BASE (Add your documents here)
 # ============================================
 KNOWLEDGE_BASE = [
-    "Our company offers 24/7 customer support via email and phone.",
-    "We provide free shipping on orders over $50 within the continental US.",
-    "Returns are accepted within 30 days of purchase with original receipt.",
-    "Our products come with a 1-year warranty covering manufacturing defects.",
-    "We accept payments through credit cards, PayPal, and bank transfers.",
-    "Business hours are Monday to Friday, 9 AM to 6 PM EST.",
-    "You can track your order using the tracking number sent to your email.",
-    "We offer discounts for bulk orders over 100 units.",
+    KNOWLEDGE_BASE = [
+    # About RTC
+    "Rathinam Technical Campus (RTC) is a premier educational institution located in Coimbatore, Tamil Nadu, India. We are committed to providing quality technical education and fostering innovation.",
+    "RTC was established with the vision of creating industry-ready professionals through world-class education and practical training.",
+    "The campus is spread across acres of lush green environment, providing an ideal atmosphere for learning and personal growth.",
+    
+    # Academics
+    "RTC offers undergraduate programs (B.E/B.Tech) in Computer Science Engineering, Electronics and Communication Engineering, Mechanical Engineering, Civil Engineering, and Information Technology.",
+    "We also offer postgraduate programs (M.E/M.Tech) in various specializations including Computer Science, VLSI Design, Structural Engineering, and more.",
+    "The academic curriculum is regularly updated to meet industry standards and includes hands-on projects, internships, and industry collaborations.",
+    "RTC follows a semester system with continuous internal assessment and end-semester examinations.",
+    
+    # Admissions
+    "Admissions to RTC are based on merit in qualifying examinations and entrance test scores (Tamil Nadu Engineering Admissions - TNEA for B.E/B.Tech).",
+    "For B.E/B.Tech programs, candidates must have completed 10+2 with Physics, Chemistry, and Mathematics with a minimum of 50% aggregate marks.",
+    "M.E/M.Tech admissions require a valid GATE score or TANCET score along with a relevant undergraduate degree.",
+    "The admission process typically begins in May-June for the academic year starting in August.",
+    "Application forms are available online on the official RTC website. The application fee is Rs. 500 for general category and Rs. 250 for reserved categories.",
+    
+    # Facilities
+    "RTC boasts state-of-the-art laboratories equipped with the latest technology and equipment for all engineering disciplines.",
+    "The campus has a well-stocked central library with over 50,000 books, journals, e-resources, and digital library access.",
+    "Hostel facilities are available separately for boys and girls with 24/7 security, mess facilities, and recreational areas.",
+    "The campus features modern sports facilities including basketball court, volleyball court, cricket ground, and indoor games facilities.",
+    "RTC has high-speed Wi-Fi connectivity across the entire campus, enabling students to access online resources anytime.",
+    
+    # Placements
+    "RTC has an excellent placement record with 85%+ students getting placed every year in top companies.",
+    "Leading companies like TCS, Infosys, Wipro, Cognizant, Accenture, Amazon, and many more recruit from RTC campus.",
+    "The Training and Placement Cell conducts regular skill development programs, mock interviews, and aptitude training sessions.",
+    "The average placement package ranges from 3.5 to 6 LPA, with highest packages going up to 12 LPA for exceptional performers.",
+    
+    # Faculty
+    "RTC has a team of highly qualified and experienced faculty members with Ph.D. and M.E/M.Tech degrees from premier institutions.",
+    "Faculty members actively engage in research activities and have published numerous papers in reputed international journals.",
+    
+    # Student Life
+    "RTC has numerous student clubs including coding club, robotics club, cultural club, NSS, and entrepreneurship cell.",
+    "Annual technical festival 'TechnoRTC' and cultural festival 'Rhythmica' are organized with participation from colleges across Tamil Nadu.",
+    "Students actively participate in hackathons, coding competitions, project expos, and other inter-college events.",
+    
+    # Infrastructure
+    "The campus features modern classrooms with smart boards, projectors, and audio-visual aids.",
+    "RTC has dedicated computer centers with 500+ systems and licensed software for students.",
+    "The campus cafeteria provides hygienic and nutritious food at affordable prices.",
+    "24/7 medical facilities with a qualified doctor and ambulance service are available on campus.",
+    
+    # Contact Information
+    "RTC is located at Eachanari, Coimbatore, Tamil Nadu - 641021, easily accessible from Coimbatore city.",
+    "For admissions enquiry, contact: +91-422-2608800 or email: admissions@rtc.edu.in",
+    "For general enquiry, email: info@rtc.edu.in or visit our website: www.rtc.edu.in",
+    
+    # Fees
+    "The tuition fee for B.E/B.Tech programs is approximately Rs. 60,000 per semester (subject to change).",
+    "Hostel fees including mess charges are approximately Rs. 35,000 per semester.",
+    "Various scholarships are available for meritorious and economically disadvantaged students.",
+]
 ]
 
 vector_db.add_documents(KNOWLEDGE_BASE)
@@ -227,3 +276,4 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
 
     app.run(host='0.0.0.0', port=port, debug=False)
+

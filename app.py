@@ -102,6 +102,45 @@ KNOWLEDGE_BASE = [
     "The tuition fee for B.E/B.Tech programs is approximately Rs. 60,000 per semester (subject to change).",
     "Hostel fees including mess charges are approximately Rs. 35,000 per semester.",
     "Various scholarships are available for meritorious and economically disadvantaged students."
+    # Core Details
+    "Name: Rathinam Technical Campus (RTC).",
+    "Location: South Coimbatore, NH 209, Tamil Nadu, India, within Coimbatore Smart City limits.",
+    "Campus Size: ~70 acres.",
+    "Year Established: 2011 (under Rathinam Arumugam Research Educational Trust).",
+    "Affiliation: Anna University, Chennai.",
+    "Accreditations: NAAC A+ (Score 3.45, first cycle), NBA for Computer Science Engineering, Information Technology, Electronics and Communication Engineering.",
+    "Student Strength: ~4000 students across Rathinam Group campus.",
+
+    # Leadership and Key Personalities
+    "Chairman & Founder: Dr. Madan A. Sendhil.",
+    "Chief Executive Officer (CEO): Dr. R. Manickam.",
+    "Principal: Dr. B. Nagaraj (also known as Dr. Nagaraj Balakrishnan, experienced in research, innovation, and accreditation).",
+    "Vice Principal (Academic): Dr. K. Geetha.",
+    "Chief Business Officer (CBO): Dr. B. Nagaraj.",
+    "Dean Academics: Prof. K.S. Sathishkumar.",
+    "Advisor: Mr. K. Rajagopal (Tech-Entrepreneur).",
+
+    # Group Entities
+    "Part of Rathinam Group of Institutions, founded in 1979, includes Arts & Science, Management, Architecture, International Public School, Community College, KPM Matriculation Hr. Sec. School, L&T Sponsored Skill Training Centre, NSDC Recognized Skill Training Centre.",
+    "Rathinam Techzone includes SEZ, IT Park, incubates ~14 companies, supporting ~2500 employees on campus.",
+
+    # Programs and Departments
+    "Academic Programs: 10 undergraduate (B.E./B.Tech), 2 postgraduate (M.E./M.Tech), MBA, MCA.",
+    "Departments include: Computer Science Engineering, Information Technology, Electronics and Communication Engineering, Mechanical Engineering, Civil Engineering, Biomedical Engineering, and others reflective of Anna University affiliation.",
+
+    # Core Facilities
+    "Facilities: Modern labs, advanced classrooms, library, computing infrastructure, hostels (boys and girls), sports grounds, recreation spaces, Centre of Excellence, Tinkering and R&D labs, housing (Rathinam Shelters), radio academy, free Wi-Fi campus-wide.",
+
+    # Student Life and Activities
+    "Student Clubs: Numerous, spanning technical, cultural, sports, innovation and leadership.",
+    "Annual Events: Cultural fests, technical symposiums, hackathons, research forums, volunteer programs, athletic tournaments, student exchanges.",
+
+    # Placement and Industry Connection
+    "Placement Record: Excellent, with dedicated Placement Cell; strong industry linkages, regular campus drives by MNCs.",
+    "Incubation and Innovation: Partnerships with Atal Incubation Centre, StartUp India, ISRO, IEEE, AICTE, and more for grants and mentorship.",
+
+    # Miscellaneous
+    "Rathinam Group leadership is recognized for philanthropy, entrepreneurship, and innovation in education and industry, with multiple awards and recognitions.
 ]
 
 vector_db.add_documents(KNOWLEDGE_BASE)
@@ -274,6 +313,7 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
 
     app.run(host='0.0.0.0', port=port, debug=False)
+
 
 
 

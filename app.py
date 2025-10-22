@@ -1,24 +1,39 @@
+"""
+RTC Scholar - RAG-based AI Assistant
+=====================================
+Dialogflow webhook with OpenRouter LLM integration
+"""
+
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import os
 import requests
-from flask_cors import CORS
-from typing import List, Dict
-import json
+from typing import List
+import time
 
-app = Flask(__name__)
-CORS(app)  # Enable CORS for frontend
+# Import knowledge base from separate file
+from knowledge_base import KNOWLEDGE_BASE
+
 # ============================================
-# SIMPLE IN-MEMORY VECTOR DB (No dependencies!)
+# FLASK APP SETUP
+# ============================================
+app = Flask(__name__)
+CORS(app)
+
+# ============================================
+# SIMPLE IN-MEMORY VECTOR DB
 # ============================================
 class SimpleVectorDB:
     """Lightweight keyword-based retrieval (no embeddings needed)"""
     
     def __init__(self):
         self.documents = []
+        print(f"✓ VectorDB initialized")
     
     def add_documents(self, docs: List[str]):
         """Add documents to the knowledge base"""
         self.documents.extend(docs)
+        print(f"✓ Loaded {len(docs)} documents into VectorDB")
     
     def search(self, query: str, top_k: int = 3) -> List[str]:
         """Simple keyword matching retrieval"""
@@ -40,114 +55,31 @@ class SimpleVectorDB:
         scored_docs.sort(reverse=True, key=lambda x: x[0])
         return [doc for _, doc in scored_docs[:top_k]]
 
-# Initialize vector DB
+# ============================================
+# INITIALIZE VECTOR DB WITH KNOWLEDGE BASE
+# ============================================
 vector_db = SimpleVectorDB()
-
-# ============================================
-# LOAD KNOWLEDGE BASE (Add your documents here)
-# ============================================
-KNOWLEDGE_BASE = [
-    # About RTC
-    "Rathinam Technical Campus (RTC) is a premier educational institution located in Coimbatore, Tamil Nadu, India. We are committed to providing quality technical education and fostering innovation.",
-    "RTC was established with the vision of creating industry-ready professionals through world-class education and practical training.",
-    "The campus is spread across acres of lush green environment, providing an ideal atmosphere for learning and personal growth.",
-    
-    # Academics
-    "RTC offers undergraduate programs (B.E/B.Tech) in Computer Science Engineering, Electronics and Communication Engineering, Mechanical Engineering, Civil Engineering, and Information Technology.",
-    "We also offer postgraduate programs (M.E/M.Tech) in various specializations including Computer Science, VLSI Design, Structural Engineering, and more.",
-    "The academic curriculum is regularly updated to meet industry standards and includes hands-on projects, internships, and industry collaborations.",
-    "RTC follows a semester system with continuous internal assessment and end-semester examinations.",
-    
-    # Admissions
-    "Admissions to RTC are based on merit in qualifying examinations and entrance test scores (Tamil Nadu Engineering Admissions - TNEA for B.E/B.Tech).",
-    "For B.E/B.Tech programs, candidates must have completed 10+2 with Physics, Chemistry, and Mathematics with a minimum of 50% aggregate marks.",
-    "M.E/M.Tech admissions require a valid GATE score or TANCET score along with a relevant undergraduate degree.",
-    "The admission process typically begins in May-June for the academic year starting in August.",
-    "Application forms are available online on the official RTC website. The application fee is Rs. 500 for general category and Rs. 250 for reserved categories.",
-    
-   
-    
-    # Placements
-    "RTC has an excellent placement record with 85%+ students getting placed every year in top companies.",
-    "Leading companies like TCS, Infosys, Wipro, Cognizant, Accenture, Amazon, and many more recruit from RTC campus.",
-    "The Training and Placement Cell conducts regular skill development programs, mock interviews, and aptitude training sessions.",
-    "The average placement package ranges from 3.5 to 6 LPA, with highest packages going up to 12 LPA for exceptional performers.",
-    
-    # Faculty
-    "RTC has a team of highly qualified and experienced faculty members with Ph.D. and M.E/M.Tech degrees from premier institutions.",
-    "Faculty members actively engage in research activities and have published numerous papers in reputed international journals.",
-    
-    # Student Life
-    "RTC has numerous student clubs including coding club, robotics club, cultural club, NSS, and entrepreneurship cell.",
-    "Annual technical festival 'TechnoRTC' and cultural festival 'Rhythmica' are organized with participation from colleges across Tamil Nadu.",
-    "Students actively participate in hackathons, coding competitions, project expos, and other inter-college events.",
-    
-    # Infrastructure
-    "The campus features modern classrooms with smart boards, projectors, and audio-visual aids.",
-    "RTC has dedicated computer centers with 500+ systems and licensed software for students.",
-    "The campus cafeteria provides hygienic and nutritious food at affordable prices.",
-    "24/7 medical facilities with a qualified doctor and ambulance service are available on campus.",
-    
-    # Contact Information
-    "RTC is located at Eachanari, Coimbatore, Tamil Nadu - 641021, easily accessible from Coimbatore city.",
-    "For admissions enquiry, contact: +91-422-2608800 or email: admissions@rtc.edu.in",
-    "For general enquiry, email: info@rtc.edu.in or visit our website: www.rtc.edu.in",
-    
-    # Fees
-    "The tuition fee for B.E/B.Tech programs is approximately Rs. 60,000 per semester (subject to change).",
-    "Hostel fees including mess charges are approximately Rs. 35,000 per semester.",
-    "Various scholarships are available for meritorious and economically disadvantaged students."
-    # Core Details
-    "Name: Rathinam Technical Campus (RTC).",
-    "Location: South Coimbatore, NH 209, Tamil Nadu, India, within Coimbatore Smart City limits.",
-    "Campus Size: ~70 acres.",
-    "Year Established: 2011 (under Rathinam Arumugam Research Educational Trust).",
-    "Affiliation: Anna University, Chennai.",
-    "Accreditations: NAAC A+ (Score 3.45, first cycle), NBA for Computer Science Engineering, Information Technology, Electronics and Communication Engineering.",
-    "Student Strength: ~4000 students across Rathinam Group campus.",
-
-    # Leadership and Key Personalities
-    "Chairman & Founder: Dr. Madan A. Sendhil.",
-    "Chief Executive Officer (CEO): Dr. R. Manickam.",
-    "Principal: Dr. B. Nagaraj (also known as Dr. Nagaraj Balakrishnan, experienced in research, innovation, and accreditation).",
-    "Vice Principal (Academic): Dr. K. Geetha.",
-    "Chief Business Officer (CBO): Dr. B. Nagaraj.",
-    "Dean Academics: Prof. K.S. Sathishkumar.",
-    "Advisor: Mr. K. Rajagopal (Tech-Entrepreneur).",
-
-    # Group Entities
-    "Part of Rathinam Group of Institutions, founded in 1979, includes Arts & Science, Management, Architecture, International Public School, Community College, KPM Matriculation Hr. Sec. School, L&T Sponsored Skill Training Centre, NSDC Recognized Skill Training Centre.",
-    "Rathinam Techzone includes SEZ, IT Park, incubates ~14 companies, supporting ~2500 employees on campus.",
-
-    # Programs and Departments
-    "Academic Programs: 10 undergraduate (B.E./B.Tech), 2 postgraduate (M.E./M.Tech), MBA, MCA.",
-    "Departments include: Computer Science Engineering, Information Technology, Electronics and Communication Engineering, Mechanical Engineering, Civil Engineering, Biomedical Engineering, and others reflective of Anna University affiliation.",
-
-    # Core Facilities
-    "Facilities: Modern labs, advanced classrooms, library, computing infrastructure, hostels (boys and girls), sports grounds, recreation spaces, Centre of Excellence, Tinkering and R&D labs, housing (Rathinam Shelters), radio academy, free Wi-Fi campus-wide.",
-
-    # Student Life and Activities
-    "Student Clubs: Numerous, spanning technical, cultural, sports, innovation and leadership.",
-    "Annual Events: Cultural fests, technical symposiums, hackathons, research forums, volunteer programs, athletic tournaments, student exchanges.",
-
-    # Placement and Industry Connection
-    "Placement Record: Excellent, with dedicated Placement Cell; strong industry linkages, regular campus drives by MNCs.",
-    "Incubation and Innovation: Partnerships with Atal Incubation Centre, StartUp India, ISRO, IEEE, AICTE, and more for grants and mentorship.",
-
-    # Miscellaneous
-    "Rathinam Group leadership is recognized for philanthropy, entrepreneurship, and innovation in education and industry, with multiple awards and recognitions."
-]
-
 vector_db.add_documents(KNOWLEDGE_BASE)
+print(f"📚 Knowledge base ready: {len(KNOWLEDGE_BASE)} documents")
 
 # ============================================
-# OPENROUTER API SETUP
+# OPENROUTER LLM CONFIGURATION
 # ============================================
 OPENROUTER_API_KEY = os.environ.get('OPENROUTER_API_KEY', '')
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+LLM_MODEL = "meta-llama/llama-3.2-3b-instruct:free"
 
 def call_llm(prompt: str, context: str) -> str:
-    """Call OpenRouter API with RAG context"""
+    """
+    Call OpenRouter API with RAG context
+    
+    Args:
+        prompt: User's question
+        context: Retrieved documents from vector DB
+        
+    Returns:
+        LLM generated response
+    """
     
     if not OPENROUTER_API_KEY:
         return "⚠️ My AI brain isn't configured yet. Please set the OPENROUTER_API_KEY in Render."
@@ -172,7 +104,6 @@ Guidelines:
 - End with a short friendly offer to help further (e.g., "Would you like to know more? 😊").
 """
 
-
     headers = {
         "Authorization": f"Bearer {OPENROUTER_API_KEY}",
         "Content-Type": "application/json",
@@ -181,7 +112,7 @@ Guidelines:
     }
     
     payload = {
-        "model": "meta-llama/llama-3.2-3b-instruct:free",  # Free model
+        "model": LLM_MODEL,
         "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": prompt}
@@ -193,26 +124,65 @@ Guidelines:
     try:
         response = requests.post(OPENROUTER_URL, headers=headers, json=payload, timeout=30)
         response.raise_for_status()
-        
         data = response.json()
         return data['choices'][0]['message']['content']
     
     except requests.exceptions.RequestException as e:
+        print(f"❌ LLM API Error: {str(e)}")
         return f"Error calling LLM: {str(e)}"
     except (KeyError, IndexError) as e:
+        print(f"❌ LLM Response Parse Error: {str(e)}")
         return f"Error parsing LLM response: {str(e)}"
 
 # ============================================
-# DIALOGFLOW WEBHOOK ENDPOINT
+# API ENDPOINTS
 # ============================================
+
+@app.route('/', methods=['GET'])
+def root():
+    """Root endpoint - Basic info"""
+    return jsonify({
+        'service': 'RTC Scholar AI Assistant',
+        'status': 'running',
+        'version': '1.0',
+        'endpoints': {
+            'health': '/health',
+            'webhook': '/webhook (POST)',
+            'test': '/test (POST)',
+            'documents': '/documents (GET)',
+            'add_document': '/add-document (POST)'
+        }
+    })
+
+@app.route('/health', methods=['GET'])
+def health_check():
+    """
+    Health check endpoint for monitoring services (UptimeRobot, etc.)
+    
+    Returns lightweight status without loading heavy resources
+    """
+    return jsonify({
+        'status': 'healthy',
+        'service': 'RTC Scholar AI',
+        'timestamp': time.time(),
+        'documents_loaded': len(vector_db.documents),
+        'api_configured': bool(OPENROUTER_API_KEY)
+    }), 200
+
 @app.route('/webhook', methods=['POST'])
 def dialogflow_webhook():
-    """Handle Dialogflow webhook requests"""
+    """
+    Main Dialogflow webhook endpoint
+    
+    Data Flow:
+    1. Receives query from Dialogflow
+    2. Searches vector DB for relevant documents (RAG Retrieval)
+    3. Sends context + query to LLM (RAG Generation)
+    4. Returns formatted response to Dialogflow
+    """
     
     try:
         req = request.get_json(silent=True, force=True)
-        
-        # Extract query from Dialogflow request
         query_text = req.get('queryResult', {}).get('queryText', '')
         
         if not query_text:
@@ -220,47 +190,48 @@ def dialogflow_webhook():
                 'fulfillmentText': 'Sorry, I didn\'t receive a valid query.'
             })
         
-        # RAG Pipeline: Retrieve + Generate
+        print(f"📥 Query received: {query_text}")
+        
+        # STEP 1: Retrieve relevant documents (RAG - Retrieval)
         relevant_docs = vector_db.search(query_text, top_k=3)
         
         if not relevant_docs:
             context = "No relevant information found in knowledge base."
+            print(f"⚠️ No relevant documents found")
         else:
             context = "\n\n".join(relevant_docs)
+            print(f"✓ Retrieved {len(relevant_docs)} relevant documents")
         
-        # Generate response using LLM
+        # STEP 2: Generate response using LLM (RAG - Generation)
         response_text = call_llm(query_text, context)
+        print(f"✓ Response generated")
         
-        # Return Dialogflow response format
+        # STEP 3: Return to Dialogflow
         return jsonify({
             'fulfillmentText': response_text,
             'source': 'webhook'
         })
     
     except Exception as e:
+        print(f"❌ Webhook Error: {str(e)}")
         return jsonify({
             'fulfillmentText': f'Error processing request: {str(e)}'
         }), 500
 
-# ============================================
-# HEALTH CHECK & TEST ENDPOINTS
-# ============================================
-@app.route('/', methods=['GET'])
-def health_check():
-    """Health check endpoint for Render"""
-    return jsonify({
-        'status': 'healthy',
-        'service': 'RTC Scholar AI Assistant',
-        'documents_loaded': len(vector_db.documents),
-        'api_key_configured': bool(OPENROUTER_API_KEY)
-    })
-
 @app.route('/test', methods=['POST'])
 def test_endpoint():
-    """Test endpoint to verify RAG pipeline"""
+    """
+    Test endpoint to verify RAG pipeline
+    
+    Example request:
+    POST /test
+    {
+        "query": "What programs does RTC offer?"
+    }
+    """
     
     data = request.get_json()
-    query = data.get('query', 'What are your business hours?')
+    query = data.get('query', 'What is RTC?')
     
     # Retrieve relevant documents
     relevant_docs = vector_db.search(query, top_k=3)
@@ -272,15 +243,29 @@ def test_endpoint():
     return jsonify({
         'query': query,
         'retrieved_documents': relevant_docs,
-        'response': response
+        'response': response,
+        'num_documents_found': len(relevant_docs)
     })
 
-# ============================================
-# DOCUMENT MANAGEMENT ENDPOINTS
-# ============================================
+@app.route('/documents', methods=['GET'])
+def list_documents():
+    """List all documents in knowledge base"""
+    return jsonify({
+        'total': len(vector_db.documents),
+        'documents': vector_db.documents
+    })
+
 @app.route('/add-document', methods=['POST'])
 def add_document():
-    """Add new documents to knowledge base"""
+    """
+    Add new documents to knowledge base dynamically
+    
+    Example request:
+    POST /add-document
+    {
+        "documents": ["New info about RTC", "Another document"]
+    }
+    """
     
     data = request.get_json()
     documents = data.get('documents', [])
@@ -289,19 +274,11 @@ def add_document():
         return jsonify({'error': 'Please provide a list of documents'}), 400
     
     vector_db.add_documents(documents)
+    print(f"✓ Added {len(documents)} new documents")
     
     return jsonify({
         'message': f'Added {len(documents)} documents',
         'total_documents': len(vector_db.documents)
-    })
-
-@app.route('/documents', methods=['GET'])
-def list_documents():
-    """List all documents in knowledge base"""
-    
-    return jsonify({
-        'total': len(vector_db.documents),
-        'documents': vector_db.documents
     })
 
 # ============================================
@@ -309,12 +286,8 @@ def list_documents():
 # ============================================
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-
+    print(f"🚀 Starting RTC Scholar on port {port}")
+    print(f"📊 Total documents in KB: {len(vector_db.documents)}")
+    print(f"🔑 API Key configured: {bool(OPENROUTER_API_KEY)}")
+    
     app.run(host='0.0.0.0', port=port, debug=False)
-
-
-
-
-
-
-

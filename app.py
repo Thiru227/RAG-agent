@@ -1,14 +1,16 @@
 """
-RTC Scholar - RAG-based AI Assistant
-=====================================
-Dialogflow webhook with OpenRouter LLM integration
+RTC Scholar - RAG-based AI Assistant (IMPROVED VERSION)
+========================================================
+Enhanced keyword matching with phrase detection and entity recognition
 """
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
 import requests
+import re
 from typing import List
+from collections import Counter
 import time
 
 # Import knowledge base from separate file
@@ -21,44 +23,118 @@ app = Flask(__name__)
 CORS(app)
 
 # ============================================
-# SIMPLE IN-MEMORY VECTOR DB
+# IMPROVED VECTOR DB WITH BETTER SEARCH
 # ============================================
-class SimpleVectorDB:
-    """Lightweight keyword-based retrieval (no embeddings needed)"""
+class ImprovedVectorDB:
+    """Enhanced keyword-based retrieval with phrase matching and fuzzy search"""
     
     def __init__(self):
         self.documents = []
-        print(f"✓ VectorDB initialized")
+        print(f"✓ ImprovedVectorDB initialized")
     
     def add_documents(self, docs: List[str]):
         """Add documents to the knowledge base"""
         self.documents.extend(docs)
         print(f"✓ Loaded {len(docs)} documents into VectorDB")
     
-    def search(self, query: str, top_k: int = 3) -> List[str]:
-        """Simple keyword matching retrieval"""
-        query_lower = query.lower()
-        query_words = set(query_lower.split())
+    def normalize_text(self, text: str) -> str:
+        """Normalize text for better matching"""
+        text = re.sub(r'[^\w\s]', ' ', text.lower())
+        text = ' '.join(text.split())
+        return text
+    
+    def extract_keywords(self, text: str) -> List[str]:
+        """Extract meaningful keywords, removing common stop words"""
+        stop_words = {
+            'what', 'is', 'the', 'who', 'where', 'when', 'how', 'are', 'do', 
+            'does', 'about', 'tell', 'me', 'can', 'you', 'a', 'an', 'and', 
+            'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by'
+        }
         
-        # Score documents by keyword overlap
+        normalized = self.normalize_text(text)
+        words = [w for w in normalized.split() if w not in stop_words and len(w) > 2]
+        return words
+    
+    def calculate_relevance_score(self, query: str, doc: str) -> float:
+        """Calculate relevance score using multiple factors"""
+        query_normalized = self.normalize_text(query)
+        doc_normalized = self.normalize_text(doc)
+        
+        score = 0.0
+        
+        # Factor 1: Exact phrase match (highest weight)
+        if query_normalized in doc_normalized:
+            score += 100
+            position = doc_normalized.find(query_normalized)
+            score += (100 - min(position, 100)) / 10
+        
+        # Factor 2: Keyword overlap
+        query_keywords = self.extract_keywords(query)
+        doc_keywords = self.extract_keywords(doc)
+        
+        if query_keywords:
+            query_counter = Counter(query_keywords)
+            doc_counter = Counter(doc_keywords)
+            
+            overlap = 0
+            for keyword in query_counter:
+                if keyword in doc_counter:
+                    overlap += min(query_counter[keyword], doc_counter[keyword])
+            
+            keyword_score = (overlap / len(query_keywords)) * 50
+            score += keyword_score
+        
+        # Factor 3: Role-based matching
+        role_keywords = {
+            'principal': ['principal', 'nagaraj', 'balakrishnan'],
+            'ceo': ['ceo', 'manickam', 'chief', 'executive'],
+            'chairman': ['chairman', 'sendhil', 'madan'],
+            'vice principal': ['vice', 'principal', 'geetha'],
+            'placement': ['placement', 'senthilkumar', 'career'],
+            'dean': ['dean', 'saravanan', 'research', 'innovation'],
+            'training': ['training', 'priya', 'ramachandran', 'career']
+        }
+        
+        for role, related_terms in role_keywords.items():
+            if any(term in query_normalized for term in [role]):
+                if any(term in doc_normalized for term in related_terms):
+                    score += 30
+        
+        # Factor 4: Name matching
+        query_words = query_normalized.split()
+        for word in query_words:
+            if len(word) > 5:
+                if word in doc_normalized:
+                    score += 25
+                elif any(word[:5] in doc_word for doc_word in doc_normalized.split()):
+                    score += 15
+        
+        return score
+    
+    def search(self, query: str, top_k: int = 3) -> List[str]:
+        """Enhanced search with multiple ranking factors"""
+        if not query or not self.documents:
+            return []
+        
         scored_docs = []
         for doc in self.documents:
-            doc_lower = doc.lower()
-            doc_words = set(doc_lower.split())
-            
-            # Calculate overlap score
-            overlap = len(query_words & doc_words)
-            if overlap > 0:
-                scored_docs.append((overlap, doc))
+            score = self.calculate_relevance_score(query, doc)
+            if score > 0:
+                scored_docs.append((score, doc))
         
-        # Sort by score and return top k
         scored_docs.sort(reverse=True, key=lambda x: x[0])
+        
+        # Debug logging
+        print(f"🔍 Query: '{query}' | Found {len(scored_docs)} relevant docs")
+        for i, (score, doc) in enumerate(scored_docs[:top_k]):
+            print(f"  [{i+1}] Score: {score:.1f} | {doc[:60]}...")
+        
         return [doc for _, doc in scored_docs[:top_k]]
 
 # ============================================
 # INITIALIZE VECTOR DB WITH KNOWLEDGE BASE
 # ============================================
-vector_db = SimpleVectorDB()
+vector_db = ImprovedVectorDB()
 vector_db.add_documents(KNOWLEDGE_BASE)
 print(f"📚 Knowledge base ready: {len(KNOWLEDGE_BASE)} documents")
 
@@ -70,38 +146,28 @@ OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 LLM_MODEL = "meta-llama/llama-3.2-3b-instruct:free"
 
 def call_llm(prompt: str, context: str) -> str:
-    """
-    Call OpenRouter API with RAG context
-    
-    Args:
-        prompt: User's question
-        context: Retrieved documents from vector DB
-        
-    Returns:
-        LLM generated response
-    """
+    """Call OpenRouter API with RAG context"""
     
     if not OPENROUTER_API_KEY:
         return "⚠️ My AI brain isn't configured yet. Please set the OPENROUTER_API_KEY in Render."
     
-    system_prompt = f"""
-You are RTC Scholar, the friendly and knowledgeable AI assistant for Rathinam Technical Campus (RTC).  
+    system_prompt = f"""You are RTC Scholar, the friendly AI assistant for Rathinam Technical Campus (RTC).
 
 Your personality:
-- Warm, supportive, and student-friendly 🎓✨  
-- Use emojis sparingly to sound natural (e.g., 📚🚀)  
-- Be concise and clear — short answers only.  
+- Warm, helpful, and professional
+- Concise and accurate
+- Use emojis sparingly for friendliness
 
-Knowledge Use:
-- Answer strictly and accurately based on the provided context from RTC's knowledge base:
+CRITICAL INSTRUCTION: Answer ONLY using information from this context:
 {context}
 
-Guidelines:
-- Provide **short, precise answers** directly derived from the vector database context.  
-- Do NOT add extra info or assumptions beyond the context.  
-- If asked about admissions, facilities, or academics — respond briefly but correctly.  
-- Maintain a positive, encouraging tone.  
-- End with a short friendly offer to help further (e.g., "Would you like to know more? 😊").
+Rules:
+- Give direct, short answers based strictly on the context above
+- If the context contains the answer, provide it clearly
+- Do NOT say "no information" if the answer is in the context
+- For names/titles, quote them exactly as shown in the context
+- Be confident when the information is available
+- End with a helpful offer: "Need anything else? 😊"
 """
 
     headers = {
@@ -117,8 +183,8 @@ Guidelines:
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": prompt}
         ],
-        "temperature": 0.7,
-        "max_tokens": 500
+        "temperature": 0.3,  # Lower temperature for more consistent answers
+        "max_tokens": 400
     }
     
     try:
@@ -129,10 +195,10 @@ Guidelines:
     
     except requests.exceptions.RequestException as e:
         print(f"❌ LLM API Error: {str(e)}")
-        return f"Error calling LLM: {str(e)}"
+        return f"Sorry, I'm having trouble connecting right now. Please try again! 🔄"
     except (KeyError, IndexError) as e:
         print(f"❌ LLM Response Parse Error: {str(e)}")
-        return f"Error parsing LLM response: {str(e)}"
+        return f"Oops, something went wrong processing your request. 😅"
 
 # ============================================
 # API ENDPOINTS
@@ -142,28 +208,24 @@ Guidelines:
 def root():
     """Root endpoint - Basic info"""
     return jsonify({
-        'service': 'RTC Scholar AI Assistant',
+        'service': 'RTC Scholar AI Assistant (Enhanced)',
         'status': 'running',
-        'version': '1.0',
+        'version': '2.0',
+        'improvements': 'Better keyword matching, phrase detection, entity recognition',
         'endpoints': {
             'health': '/health',
             'webhook': '/webhook (POST)',
             'test': '/test (POST)',
-            'documents': '/documents (GET)',
-            'add_document': '/add-document (POST)'
+            'documents': '/documents (GET)'
         }
     })
 
 @app.route('/health', methods=['GET'])
 def health_check():
-    """
-    Health check endpoint for monitoring services (UptimeRobot, etc.)
-    
-    Returns lightweight status without loading heavy resources
-    """
+    """Health check endpoint"""
     return jsonify({
         'status': 'healthy',
-        'service': 'RTC Scholar AI',
+        'service': 'RTC Scholar AI (Enhanced)',
         'timestamp': time.time(),
         'documents_loaded': len(vector_db.documents),
         'api_configured': bool(OPENROUTER_API_KEY)
@@ -171,15 +233,7 @@ def health_check():
 
 @app.route('/webhook', methods=['POST'])
 def dialogflow_webhook():
-    """
-    Main Dialogflow webhook endpoint
-    
-    Data Flow:
-    1. Receives query from Dialogflow
-    2. Searches vector DB for relevant documents (RAG Retrieval)
-    3. Sends context + query to LLM (RAG Generation)
-    4. Returns formatted response to Dialogflow
-    """
+    """Main Dialogflow webhook endpoint with improved RAG"""
     
     try:
         req = request.get_json(silent=True, force=True)
@@ -192,46 +246,39 @@ def dialogflow_webhook():
         
         print(f"📥 Query received: {query_text}")
         
-        # STEP 1: Retrieve relevant documents (RAG - Retrieval)
-        relevant_docs = vector_db.search(query_text, top_k=3)
+        # STEP 1: Retrieve relevant documents with improved search
+        relevant_docs = vector_db.search(query_text, top_k=4)  # Get more context
         
         if not relevant_docs:
-            context = "No relevant information found in knowledge base."
-            print(f"⚠️ No relevant documents found")
-        else:
-            context = "\n\n".join(relevant_docs)
-            print(f"✓ Retrieved {len(relevant_docs)} relevant documents")
+            return jsonify({
+                'fulfillmentText': 'Hmm, I couldn\'t find specific information about that. Could you rephrase your question? 🤔'
+            })
         
-        # STEP 2: Generate response using LLM (RAG - Generation)
+        context = "\n\n".join(relevant_docs)
+        print(f"✓ Retrieved {len(relevant_docs)} relevant documents")
+        
+        # STEP 2: Generate response using LLM
         response_text = call_llm(query_text, context)
-        print(f"✓ Response generated")
+        print(f"✓ Response generated: {response_text[:100]}...")
         
         # STEP 3: Return to Dialogflow
         return jsonify({
             'fulfillmentText': response_text,
-            'source': 'webhook'
+            'source': 'webhook-enhanced'
         })
     
     except Exception as e:
         print(f"❌ Webhook Error: {str(e)}")
         return jsonify({
-            'fulfillmentText': f'Error processing request: {str(e)}'
+            'fulfillmentText': 'Sorry, something went wrong. Please try again! 🔄'
         }), 500
 
 @app.route('/test', methods=['POST'])
 def test_endpoint():
-    """
-    Test endpoint to verify RAG pipeline
-    
-    Example request:
-    POST /test
-    {
-        "query": "What programs does RTC offer?"
-    }
-    """
+    """Test endpoint with detailed debugging"""
     
     data = request.get_json()
-    query = data.get('query', 'What is RTC?')
+    query = data.get('query', 'Who is the principal?')
     
     # Retrieve relevant documents
     relevant_docs = vector_db.search(query, top_k=3)
@@ -243,8 +290,9 @@ def test_endpoint():
     return jsonify({
         'query': query,
         'retrieved_documents': relevant_docs,
-        'response': response,
-        'num_documents_found': len(relevant_docs)
+        'num_documents_found': len(relevant_docs),
+        'context_sent_to_llm': context,
+        'response': response
     })
 
 @app.route('/documents', methods=['GET'])
@@ -252,33 +300,8 @@ def list_documents():
     """List all documents in knowledge base"""
     return jsonify({
         'total': len(vector_db.documents),
-        'documents': vector_db.documents
-    })
-
-@app.route('/add-document', methods=['POST'])
-def add_document():
-    """
-    Add new documents to knowledge base dynamically
-    
-    Example request:
-    POST /add-document
-    {
-        "documents": ["New info about RTC", "Another document"]
-    }
-    """
-    
-    data = request.get_json()
-    documents = data.get('documents', [])
-    
-    if not documents or not isinstance(documents, list):
-        return jsonify({'error': 'Please provide a list of documents'}), 400
-    
-    vector_db.add_documents(documents)
-    print(f"✓ Added {len(documents)} new documents")
-    
-    return jsonify({
-        'message': f'Added {len(documents)} documents',
-        'total_documents': len(vector_db.documents)
+        'documents': vector_db.documents[:10],  # First 10 for preview
+        'note': 'Showing first 10 documents. Total available: ' + str(len(vector_db.documents))
     })
 
 # ============================================
@@ -286,7 +309,7 @@ def add_document():
 # ============================================
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    print(f"🚀 Starting RTC Scholar on port {port}")
+    print(f"🚀 Starting RTC Scholar (Enhanced) on port {port}")
     print(f"📊 Total documents in KB: {len(vector_db.documents)}")
     print(f"🔑 API Key configured: {bool(OPENROUTER_API_KEY)}")
     

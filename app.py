@@ -143,7 +143,7 @@ print(f"📚 Knowledge base ready: {len(KNOWLEDGE_BASE)} documents")
 # ============================================
 OPENROUTER_API_KEY = os.environ.get('OPENROUTER_API_KEY', '')
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
-LLM_MODEL = "meta-llama/llama-3.2-3b-instruct:free"
+LLM_MODEL = "meta-llama/llama-3.1-8b-instruct"
 
 def call_llm(prompt: str, context: str) -> str:
     """Call OpenRouter API with RAG context"""
@@ -314,3 +314,4 @@ if __name__ == '__main__':
     print(f"🔑 API Key configured: {bool(OPENROUTER_API_KEY)}")
     
     app.run(host='0.0.0.0', port=port, debug=False)
+
